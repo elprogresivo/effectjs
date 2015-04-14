@@ -1,10 +1,10 @@
 /*!
- * EffectJs v0.1.0 - 2015-04-14 - Lib for DOM elements animation
+ * EffectJs v0.1.1 - 2015-04-15 - Lib for DOM elements animation
  *
  * https://github.com/elprogresivo/effectjs
  *
  * Copyright 2015 Igor Popoff
- * Released under the MIT license.
+ * Released under MIT license.
  */
 
 //polyfill for ie9
@@ -35,7 +35,9 @@ effect.parser = {};
 effect.animations ={};
 
 effect.animationCounter=0;
+effect.currentTime = 0;
 effect.elToTest=false;
+effect.odd = 0;
 
 effect.parseStyle = function(el,props){
 	el = el[0];
@@ -74,18 +76,15 @@ effect.parseStyle = function(el,props){
 
 effect.animate = function(el,props, callback){
 var i = 0,
-j = 0,
-styles, 
+j = 0, 
 cnt = ++effect.animationCounter,
 stamp = Date.now();
 
-if(!(el instanceof HTMLElement)){
+if(!(el instanceof HTMLElement) && !(el[0] instanceof HTMLElement)){
 	props = arguments[0];
 	callback = arguments[1];
 	el = this.el;
 }
-
-styles = effect.parseStyle(el,props);
 
 effect.animations[cnt] = {};
 effect.animations[cnt].el = el[0];
@@ -94,7 +93,6 @@ effect.animations[cnt].endTime =0;
 effect.animations[cnt].durration =0;
 effect.animations[cnt].frames = [];
 effect.animations[cnt].currentFrame =0;
-effect.animations[cnt].currentTime = stamp;
 effect.animations[cnt].lastFrame = 0;
 effect.animations[cnt].step =0;
 effect.animations[cnt].fps = 60;
@@ -103,33 +101,52 @@ effect.animations[cnt].timeoutId = null;
 effect.animations[cnt].requestAnimationId =0;
 effect.animations[cnt].step = Math.round(1000 / effect.animations[cnt].fps);
 effect.animations[cnt].lastFrame = Math.round(((props&&props.duration) ? props.duration : 1) *effect.animations[cnt].fps);
-effect.animations[cnt].startTime =window.performance.now? window.performance.now(): Date.now();
-effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
+effect.animations[cnt].styles = effect.parseStyle(el,props);
+effect.animations[cnt].startTime = Date.now();
+effect.currentTime = effect.animations[cnt].startTime;
+//effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
 
+if(Object.keys(effect.animations).length==1){
+effect.requestAnimationId = requestAnimationFrame(go);
+}
 
 function go(ts){
-	//TODO: put all animated elements shit in single requestanimationframe
-	//var stamp = Date.now();
-	//var lag = stamp - effect.animations[cnt].currentTime;
-	effect.animations[cnt].counter++;
-	//effect.animations[cnt].currentTime = stamp;
-	//if(lag > 30) {
-	//	effect.animations[cnt].timeoutId = effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
-	//	return;
-	//}
 	
-	updateStyle(effect.animations[cnt].el,styles);
-	effect.animations[cnt].timeoutId = effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
-	if(effect.animations[cnt].counter>=effect.animations[cnt].lastFrame) {
-		cancelAnimationFrame(effect.animations[cnt].requestAnimationId);
-		effect.animations[cnt].el.style['will-change'] = null;
-		effect.animations[cnt] = null;
-		//console.log(Date.now()-stamp);
-		callback && callback();
+	var animationsArray = Object.keys(effect.animations);
+	var stamp = Date.now();
+	var lag = stamp - effect.currentTime;
+	effect.currentTime = stamp;
+	effect.odd = (effect.odd == 0)? 1 : 0;
+	for(var i=0;i<animationsArray.length;i++){
+		cnt = animationsArray[i];
+		//console.log(cnt);
+		//TODO: implement skipframe
+		effect.animations[cnt].counter++;
+		/*if(lag > 16) {
+			//effect.animations[cnt].timeoutId = effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
+			//effect.requestAnimationId = requestAnimationFrame(go);
+			continue;
+		}*/
+	
+		updateStyle(effect.animations[cnt].el,effect.animations[cnt].styles,cnt);
+		
+		if(effect.animations[cnt].counter>=effect.animations[cnt].lastFrame) {
+			effect.animations[cnt].el.style['will-change'] = null;
+			delete effect.animations[cnt];
+			//console.log(Date.now()-stamp);
+			callback && callback();
+		}
+		
 	}
+		//effect.animations[cnt].timeoutId = effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
+		effect.requestAnimationId = requestAnimationFrame(go);
+		if(animationsArray.length==0){
+			cancelAnimationFrame(effect.requestAnimationId);
+		}
+		
 };
 	
-	function updateStyle(el, styles){
+	function updateStyle(el, styles, cnt){
 		var newStyle, i, progress;
 		//can turn on easing transition
 		progress = effect.animations[cnt].counter/effect.animations[cnt].lastFrame;
