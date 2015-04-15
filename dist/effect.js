@@ -88,9 +88,8 @@ if(!(el instanceof HTMLElement) && !(el[0] instanceof HTMLElement)){
 
 effect.animations[cnt] = {};
 effect.animations[cnt].el = el[0];
-effect.animations[cnt].startTime =0;
 effect.animations[cnt].endTime =0;
-effect.animations[cnt].durration =0;
+effect.animations[cnt].duration =props.duration*1000;
 effect.animations[cnt].frames = [];
 effect.animations[cnt].currentFrame =0;
 effect.animations[cnt].lastFrame = 0;
@@ -127,10 +126,12 @@ function go(ts){
 			//effect.requestAnimationId = requestAnimationFrame(go);
 			continue;
 		}*/
-	
-		updateStyle(effect.animations[cnt].el,effect.animations[cnt].styles,cnt);
+		var progress = (Date.now() - effect.animations[cnt].startTime)/effect.animations[cnt].duration;
+		if(progress>1) progress = 1;
 		
-		if(effect.animations[cnt].counter>=effect.animations[cnt].lastFrame) {
+		updateStyle(effect.animations[cnt].el,effect.animations[cnt].styles,cnt, progress);
+		
+		if(effect.animations[cnt].counter>=effect.animations[cnt].lastFrame || progress>1) {
 			effect.animations[cnt].el.style['will-change'] = null;
 			delete effect.animations[cnt];
 			//console.log(Date.now()-stamp);
@@ -146,10 +147,11 @@ function go(ts){
 		
 };
 	
-	function updateStyle(el, styles, cnt){
+	function updateStyle(el, styles, cnt, progress){
 		var newStyle, i, progress;
 		//can turn on easing transition
-		progress = effect.animations[cnt].counter/effect.animations[cnt].lastFrame;
+		//progress = effect.animations[cnt].counter/effect.animations[cnt].lastFrame;
+		
 		//progress = trans(progress);
 		for(i in styles){
 			if(styles[i].measureUnit === 'color'){
