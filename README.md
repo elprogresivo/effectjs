@@ -1,2 +1,2 @@
 # effectjs
-Readme file
+Coming soon
