@@ -79,6 +79,7 @@ effect.animations[cnt].requestAnimationId =0;
 effect.animations[cnt].step = Math.round(1000 / effect.animations[cnt].fps);
 effect.animations[cnt].lastFrame = Math.round(((props&&props.duration) ? props.duration : 1) *effect.animations[cnt].fps);
 effect.animations[cnt].styles = effect.parseStyle(el,props);
+effect.animations[cnt].callback = callback;
 effect.animations[cnt].startTime = Date.now();
 effect.currentTime = effect.animations[cnt].startTime;
 //effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
@@ -99,25 +100,22 @@ function go(ts){
 		//console.log(cnt);
 		//TODO: implement skipframe
 		effect.animations[cnt].counter++;
-		/*if(lag > 16) {
-			//effect.animations[cnt].timeoutId = effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
-			//effect.requestAnimationId = requestAnimationFrame(go);
-			continue;
-		}*/
+
 		var progress = (Date.now() - effect.animations[cnt].startTime)/effect.animations[cnt].duration;
-		if(progress>1) progress = 1;
+		if(progress>1){
+			progress = 1;
+		}
 		
 		updateStyle(effect.animations[cnt].el,effect.animations[cnt].styles,cnt, progress);
 		
 		if(effect.animations[cnt].counter>=effect.animations[cnt].lastFrame || progress>1) {
 			effect.animations[cnt].el.style['will-change'] = null;
+			effect.animations[cnt].callback && effect.animations[cnt].callback();
 			delete effect.animations[cnt];
 			//console.log(Date.now()-stamp);
-			callback && callback();
 		}
 		
 	}
-		//effect.animations[cnt].timeoutId = effect.animations[cnt].requestAnimationId = requestAnimationFrame(go);
 		effect.requestAnimationId = requestAnimationFrame(go);
 		if(animationsArray.length==0){
 			cancelAnimationFrame(effect.requestAnimationId);
@@ -128,9 +126,8 @@ function go(ts){
 	function updateStyle(el, styles, cnt, progress){
 		var newStyle, i, progress;
 		//can turn on easing transition
-		//progress = effect.animations[cnt].counter/effect.animations[cnt].lastFrame;
+		//progress = effect.easing.test1(progress);
 		
-		//progress = trans(progress);
 		for(i in styles){
 			if(styles[i].measureUnit === 'color'){
 				updateColor(el, styles, i, progress);
